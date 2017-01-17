@@ -23,8 +23,8 @@ func main() {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	r := mux.NewRouter()
-	r.HandleFunc("/api/{endpoint:.*}", counter(handler(proxy), "api"))
-	r.HandleFunc("/api/stats", handler(proxy))
+	r.HandleFunc("/api/{endpoint:.*}", counter(handler(proxy)))
+	r.HandleFunc("/api/stats", counter(handler(proxy)))
 	r.NotFoundHandler = http.HandlerFunc(notFound)
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", r)
@@ -69,7 +69,7 @@ func timeTrack(start time.Time, endpoint string) {
 /* Counts the number of times that the endpoint has been requested and also
 passes the http request to the timeTrack function so we can measure how
 long it took for it to finish */
-func counter(fn http.HandlerFunc, name string) http.HandlerFunc {
+func counter(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		endpoint := req.URL.Path
 		defer timeTrack(time.Now(), endpoint) // Begins tracking
