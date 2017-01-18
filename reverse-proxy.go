@@ -9,11 +9,24 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
 )
 
 var queriesCounter map[string]int
 var slowRequests map[string]string
+var pool = newPool()
+
+// Pool configuration
+func newPool() *redis.Pool {
+	return &redis.Pool{
+		MaxIdle:   80,
+		MaxActive: 12000,
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", ":6379")
+		},
+	}
+}
 
 func main() {
 
@@ -26,6 +39,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/api/v1/{endpoint:.*}", counter(handler(proxy)))
 	r.HandleFunc("/api/stats", counter(http.HandlerFunc(stats)))
+	r.HandleFunc("/api/red", counter(http.HandlerFunc(red)))
 	r.NotFoundHandler = http.HandlerFunc(notFound)
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", r)
@@ -48,16 +62,26 @@ func notFound(w http.ResponseWriter, r *http.Request) {
 	log.Println("404")
 }
 
+//Redis test
+func red(res http.ResponseWriter, req *http.Request) {
+	conn := pool.Get()
+	defer conn.Close()
+
+	pong, _ := redis.Bytes(conn.Do("PING"))
+	res.Write(pong)
+}
+
 /* Displays endpoints with slow requests and the number of requests per endpoint
 Not sure about this implementation though. Might try again later */
 func stats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{\n slow_requests: "))
-	s, _ := json.MarshalIndent(slowRequests, " ", "    ")
+	s, _ := json.MarshalIndent(slowRequests, " ", "  ")
 	w.Write(s)
-	q, _ := json.MarshalIndent(queriesCounter, " ", "    ")
+	q, _ := json.MarshalIndent(queriesCounter, " ", "  ")
 	w.Write([]byte("\n queries: "))
 	w.Write(q)
+	w.Write([]byte("\n}"))
 }
 
 /* Measure how long it took for http request to finish.
