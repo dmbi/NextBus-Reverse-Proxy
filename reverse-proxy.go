@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -23,25 +24,21 @@ func main() {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	r := mux.NewRouter()
-	r.HandleFunc("/api/{endpoint:.*}", counter(handler(proxy)))
-	r.HandleFunc("/api/stats", counter(handler(proxy)))
+	r.HandleFunc("/api/v1/{endpoint:.*}", counter(handler(proxy)))
+	r.HandleFunc("/api/stats", counter(http.HandlerFunc(stats)))
 	r.NotFoundHandler = http.HandlerFunc(notFound)
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", r)
 }
 
+//Main http handler
 func handler(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.URL.Scheme = "http"
-		if mux.Vars(r)["endpoint"] == "stats" { /// TODO: Not working as intended, needs work
-			r.URL.Host = r.Host
-			r.URL.Path = "/api/stats"
-		} else {
-			r.Host = "webservices.nextbus.com"
-			r.URL.Host = r.Host
-			r.URL.Path = "/service/publicXMLFeed"
-			r.URL.RawQuery = "command=" + mux.Vars(r)["endpoint"]
-		}
+		r.Host = "webservices.nextbus.com"
+		r.URL.Host = r.Host
+		r.URL.Path = "/service/publicXMLFeed"
+		r.URL.RawQuery = "command=" + mux.Vars(r)["endpoint"]
 		p.ServeHTTP(w, r)
 	}
 }
@@ -49,6 +46,18 @@ func handler(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) 
 // Custom 404 Page
 func notFound(w http.ResponseWriter, r *http.Request) {
 	log.Println("404")
+}
+
+/* Displays endpoints with slow requests and the number of requests per endpoint
+Not sure about this implementation though. Might try again later */
+func stats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{\n slow_requests: "))
+	s, _ := json.MarshalIndent(slowRequests, " ", "    ")
+	w.Write(s)
+	q, _ := json.MarshalIndent(queriesCounter, " ", "    ")
+	w.Write([]byte("\n queries: "))
+	w.Write(q)
 }
 
 /* Measure how long it took for http request to finish.
