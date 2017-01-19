@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/garyburd/redigo/redis" //Caching
@@ -41,8 +42,10 @@ func main() {
 	r.HandleFunc("/api/routeList/{a}", counter(handler(proxy, "routeList")))
 	r.HandleFunc("/api/routeConfig/{a}/{r}", counter(handler(proxy, "routeConfig")))
 	//predictions
-	//predictionsForMultiStops
+	r.HandleFunc("/api/predictionsForMultiStops/{a}/{s:.*}", counter(handler(proxy, "predictionsForMultiStops")))
 	r.HandleFunc("/api/schedule/{a}/{r}", counter(handler(proxy, "schedule")))
+	r.HandleFunc("/api/messages/{a}/{r:.*}", counter(handler(proxy, "messages")))
+	r.HandleFunc("/api/vehicleLocations/{a}/{r}/{t}", counter(handler(proxy, "vehicleLocations")))
 	r.HandleFunc("/api/stats", counter(http.HandlerFunc(stats)))
 	r.HandleFunc("/api/red", counter(http.HandlerFunc(red)))
 	r.NotFoundHandler = http.HandlerFunc(notFound)
@@ -66,12 +69,22 @@ func handler(p *httputil.ReverseProxy, endpoint string) func(http.ResponseWriter
 		case "predictions":
 			// TODO
 		case "predictionsForMultiStops":
-			// TODO
+			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"]
+			split := strings.Split(mux.Vars(r)["s"], "/")
+			for i := range split {
+				r.URL.RawQuery = r.URL.RawQuery + "&stops=" + split[i]
+			}
 		case "schedule":
 			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"] + "&r=" + mux.Vars(r)["r"]
+		case "messages":
+			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"]
+			split := strings.Split(mux.Vars(r)["r"], "/")
+			for i := range split {
+				r.URL.RawQuery = r.URL.RawQuery + "&r=" + split[i]
+			}
+		case "vehicleLocations":
+			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"] + "&r=" + mux.Vars(r)["r"] + "&t=" + mux.Vars(r)["t"]
 		}
-
-		log.Println(r.URL)
 		p.ServeHTTP(w, r)
 	}
 }
@@ -113,8 +126,8 @@ func timeTrack(start time.Time, endpoint string) {
 		if len(slowRequests) == 0 { // Initialize slowRequests map
 			slowRequests = make(map[string]string)
 		}
-		e := fmt.Sprintf("%.3f", elapsed) // Float to string, round value
-		slowRequests[endpoint] = e
+		e := fmt.Sprintf("%.1f", elapsed) // Float to string, round value
+		slowRequests[endpoint] = e + "s"
 		log.Printf("** SLOW REQUEST - [%s] took %ss **", endpoint, e)
 	}
 }
