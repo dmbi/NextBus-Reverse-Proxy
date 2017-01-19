@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
-	"github.com/gorilla/mux"
+	"github.com/garyburd/redigo/redis" //Caching
+	"github.com/gorilla/mux"           //HTTP Routing
 )
 
 var queriesCounter map[string]int
@@ -37,7 +37,12 @@ func main() {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	r := mux.NewRouter()
-	r.HandleFunc("/api/v1/{endpoint:.*}", counter(handler(proxy)))
+	r.HandleFunc("/api/agencyList", counter(handler(proxy, "agencyList")))
+	r.HandleFunc("/api/routeList/{a}", counter(handler(proxy, "routeList")))
+	r.HandleFunc("/api/routeConfig/{a}/{r}", counter(handler(proxy, "routeConfig")))
+	//predictions
+	//predictionsForMultiStops
+	r.HandleFunc("/api/schedule/{a}/{r}", counter(handler(proxy, "schedule")))
 	r.HandleFunc("/api/stats", counter(http.HandlerFunc(stats)))
 	r.HandleFunc("/api/red", counter(http.HandlerFunc(red)))
 	r.NotFoundHandler = http.HandlerFunc(notFound)
@@ -46,19 +51,34 @@ func main() {
 }
 
 //Main http handler
-func handler(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
+func handler(p *httputil.ReverseProxy, endpoint string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.URL.Scheme = "http"
 		r.Host = "webservices.nextbus.com"
 		r.URL.Host = r.Host
 		r.URL.Path = "/service/publicXMLFeed"
-		r.URL.RawQuery = "command=" + mux.Vars(r)["endpoint"]
+		r.URL.RawQuery = "command=" + endpoint
+		switch endpoint {
+		case "routeList":
+			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"]
+		case "routeConfig":
+			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"] + "&r=" + mux.Vars(r)["r"]
+		case "predictions":
+			// TODO
+		case "predictionsForMultiStops":
+			// TODO
+		case "schedule":
+			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"] + "&r=" + mux.Vars(r)["r"]
+		}
+
+		log.Println(r.URL)
 		p.ServeHTTP(w, r)
 	}
 }
 
 // Custom 404 Page
 func notFound(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Incorrect usage, please read the documentation."))
 	log.Println("404")
 }
 
