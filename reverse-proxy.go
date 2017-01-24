@@ -55,7 +55,8 @@ func main() {
 	r.HandleFunc("/api/agencyList", counter(handler(proxy, "agencyList")))
 	r.HandleFunc("/api/routeList/{a}", counter(handler(proxy, "routeList")))
 	r.HandleFunc("/api/routeConfig/{a}/{r}", counter(handler(proxy, "routeConfig")))
-	//predictions
+	r.HandleFunc("/api/predictByStopId/{a}/{stopId:.*}", counter(handler(proxy, "predictByStopId")))
+	r.HandleFunc("/api/predictByStop/{a}/{r}/{s}", counter(handler(proxy, "predictByStop")))
 	r.HandleFunc("/api/predictionsForMultiStops/{a}/{s:.*}", counter(handler(proxy, "predictionsForMultiStops")))
 	r.HandleFunc("/api/schedule/{a}/{r}", counter(handler(proxy, "schedule")))
 	r.HandleFunc("/api/messages/{a}/{r:.*}", counter(handler(proxy, "messages")))
@@ -76,14 +77,19 @@ func handler(p *httputil.ReverseProxy, endpoint string) func(http.ResponseWriter
 		r.URL.Path = "/service/publicXMLFeed"
 		r.URL.RawQuery = "command=" + endpoint
 		switch endpoint {
-		case "agencyList":
-
 		case "routeList":
 			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"]
 		case "routeConfig":
 			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"] + "&r=" + mux.Vars(r)["r"]
-		case "predictions":
-			// TODO
+		case "predictByStopId":
+			r.URL.RawQuery = "command=predictions" + "&a=" + mux.Vars(r)["a"] + "&stopId=" + mux.Vars(r)["stopId"]
+			if strings.Contains(mux.Vars(r)["stopId"], "/") {
+				split := strings.Split(mux.Vars(r)["stopId"], "/")
+				mux.Vars(r)["stopId"] = split[0]
+				r.URL.RawQuery = "command=predictions" + "&a=" + mux.Vars(r)["a"] + "&stopId=" + mux.Vars(r)["stopId"] + "&r=" + split[1]
+			}
+		case "predictByStop":
+			r.URL.RawQuery = "command=predictions" + "&a=" + mux.Vars(r)["a"] + "&r=" + mux.Vars(r)["r"] + "&s=" + mux.Vars(r)["s"]
 		case "predictionsForMultiStops":
 			r.URL.RawQuery = r.URL.RawQuery + "&a=" + mux.Vars(r)["a"]
 			split := strings.Split(mux.Vars(r)["s"], "/")
