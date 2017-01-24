@@ -21,6 +21,7 @@ type Query struct {
 	Count    int
 }
 
+//Displays stats -> slow_requests and queries
 func stats(w http.ResponseWriter, r *http.Request) {
 	session := connect()
 	defer session.Close()
@@ -64,13 +65,12 @@ func stats(w http.ResponseWriter, r *http.Request) {
 /* Measure how long it took for http request to finish.
 Also if above threshold add the endpoint to the slowRequests map. */
 func timeTrack(start time.Time, endpoint string) {
+	config := LoadConfig("./config.json")
 	session := connect()
 	defer session.Close()
 	collection := session.DB("stats").C("slow_requests")
-
 	elapsed := time.Since(start).Seconds()
-	threshold := 0.1         // 0.5 seconds
-	if elapsed > threshold { // Response time higher than threshold
+	if elapsed > config.Threshold { // Response time higher than threshold
 		e := fmt.Sprintf("%.1f", elapsed) + "s"
 		_, err := collection.Upsert(bson.M{"endpoint": endpoint}, &Slow{endpoint, e})
 		if err != nil {
