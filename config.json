@@ -1,7 +1,7 @@
 {
-    "mongodb_Adress": "localhost",
+    "mongodb_Adress": "mongo",
     "mongodb_Port": "27017",
-    "redis_Adress": "localhost",
+    "redis_Adress": "redis",
     "redis_Port": "6379",
     "slow_requests_threshold": 1.0
 }
