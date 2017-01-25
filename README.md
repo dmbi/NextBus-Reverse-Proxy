@@ -50,7 +50,7 @@ $ docker-compose build
 $ docker-compose up
 ```
 ## Configuration
-In the `config.json` file you can change the MongoDB and Redis address and port. The default value is the service name for use with docker-compose. If you are running the application without using docker-compose you should at least change both adresses to localhost.
+In the `config.json` file you can change the MongoDB and Redis address and port. The default value is the service name for use with docker-compose. If you are running the application without using docker-compose you should at least change both addresses to localhost.
 In this file you can also change the threshold for the slow_requests stats. The default value is 1.0 (1 second).
 
 ## API Endpoints
