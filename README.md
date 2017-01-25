@@ -5,21 +5,21 @@ It uses:
   - Golang
   - MongoDB
   - Redis
-  - Docker
+  - Docker (<a href="https://hub.docker.com/r/dmbi17/nextbus-reverse-proxy/">Repository</a>)
  
 *Disclaimer:
 My first attempt at Golang, MongoDB, Redis and Docker.
 Probably not the best way to do this but the only way I know how at the moment.
 Suggestions welcome!*
 
-Reading more about the <a href="http://www.nextbus.com/xmlFeedDocs/NextBusXMLFeed.pdf">NextBus XML Feed</a> is recomended.
+Reading more about the <a href="http://www.nextbus.com/xmlFeedDocs/NextBusXMLFeed.pdf">NextBus XML Feed</a> is recommended.
 
 ## Running the application - Locally
 If you are going to run the application you need to:
  - <a href="https://golang.org/doc/install">Install Golang</a>
+ - <a href="https://golang.org/doc/install#testing">Setup your $GOPATH</a>
  - <a href="https://redis.io/download"> Install Redis</a>
  - <a href="https://docs.mongodb.com/manual/installation/">Install MongoDB</a>
- - <a href="https://golang.org/doc/install#testing">Setup your $GOPATH</a>
  
 Download the source code and it's dependencies
  ```bash
@@ -37,9 +37,18 @@ $ cd $GOPATH/src/github.com/dmbi/NextBus-Reverse-Proxy
 $ ./Run.sh
  ```
 ## Running the application - Distributed mode
-<a href="https://docs.docker.com/compose/gettingstarted/">docker-compose</a> allows us to simplify the 
+By using <a href="https://docs.docker.com/compose/overview/">docker-compose</a> we can use a single command to run all the required services at the same time.
+There is no need to install Redis and MongoDB separately.
 
-
+ - Start by <a href="https://docs.docker.com/compose/install/">installing docker-compose</a>.
+ - Install Golang and setup your $GOPATH as explained above.
+ - Get the application (If you haven't before) and run docker-compose
+```bash
+$ go get github.com/dmbi/NextBus-Reverse-Proxy
+$ cd $GOPATH/src/github.com/dmbi/NextBus-Reverse-Proxy
+$ docker-compose build
+$ docker-compose up
+```
 ## Configuration
 In the `config.json` file you can change the MongoDB and Redis address and port. The default value is the service name for use with docker-compose. If you are running the application without using docker-compose you should at least change both adresses to localhost.
 In this file you can also change the threshold for the slow_requests stats. The default value is 1.0 (1 second).
@@ -79,7 +88,4 @@ The statistics are written in a MongoDB database. The main goal here is that all
 ## Caching
 Cache is provided by Redis. 
 Currently only the connection to the Redis server is implemented, so no actual caching is taking place.
-It's on the TODO list.
-
-
- 
+It's on the TODO list. 
