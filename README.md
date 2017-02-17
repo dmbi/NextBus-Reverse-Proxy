@@ -75,7 +75,7 @@ Get `{agency}` tags using `agencyList`, `{route}` tags using `routeList`, `{stop
    - `api/predictByStopId/sf-muni/15184`
    - `api/predictByStop/sf-muni/E/5184`
    - `api/predictionsForMultiStops/sf-muni/N|6997`		
-   - `api/schedule/agencyList/E`
+   - `api/schedule/sf-muni/E`
    - `api/vehicleLocations/sf-muni/E/0`
    
 ## MongoDB and Statistics
